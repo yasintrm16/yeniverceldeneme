@@ -1,7 +1,5 @@
-// frontend/src/pages/CreatePage.jsx
-
 import { ArrowLeftIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/axios";
@@ -10,6 +8,7 @@ const CreatePage = () => {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [image, setImage] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -19,23 +18,31 @@ const CreatePage = () => {
 
         if (!file) {
             setImage(null);
+            setPreviewUrl(null);
             return;
         }
 
-        const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+        const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
-        // Dosya boyutunu anında kontrol et
         if (file.size > MAX_FILE_SIZE_BYTES) {
-            // DEĞİŞİKLİK BURADA: Hata mesajını güncelledik.
-            toast.error("fotoğraf çok buyuk"); 
-            
-            e.target.value = null; 
+            toast.error("fotoğraf çok buyuk");
+            e.target.value = null;
             setImage(null);
-            return; // İşlemi burada durdurarak "Kaydet" tuşuna basılmasını bekleme
+            setPreviewUrl(null);
+            return;
         }
 
         setImage(file);
+        setPreviewUrl(URL.createObjectURL(file));
     };
+
+    useEffect(() => {
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -46,7 +53,6 @@ const CreatePage = () => {
         }
 
         setLoading(true);
-
         const formData = new FormData();
         formData.append("title", title);
         formData.append("content", content);
@@ -56,23 +62,13 @@ const CreatePage = () => {
 
         try {
             await api.post("/notes", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
+                headers: { "Content-Type": "multipart-form-data" },
             });
-
             toast.success("Note created successfully!");
             navigate("/");
         } catch (error) {
             console.log("Error creating note", error);
-            if (error.response?.status === 429) {
-                toast.error("Slow down! You're creating notes too fast", {
-                    duration: 4000,
-                    icon: "💀",
-                });
-            } else {
-                toast.error(error.response?.data?.message || "Failed to create note");
-            }
+            toast.error(error.response?.data?.message || "Failed to create note");
         } finally {
             setLoading(false);
         }
@@ -91,8 +87,34 @@ const CreatePage = () => {
                         <div className="card-body">
                             <h2 className="card-title text-2xl mb-4">Create New Note</h2>
                             <form onSubmit={handleSubmit}>
-                                {/* ...diğer form elemanları... */}
+                                {/* EKLENMESİ GEREKEN BÖLÜM 1: Title Input */}
+                                <div className="form-control mb-4">
+                                    <label className="label">
+                                        <span className="label-text">Title</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Note title"
+                                        className="input input-bordered w-full"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* EKLENMESİ GEREKEN BÖLÜM 2: Content Textarea */}
+                                <div className="form-control mb-4">
+                                    <label className="label">
+                                        <span className="label-text">Content</span>
+                                    </label>
+                                    <textarea
+                                        placeholder="Write your note here..."
+                                        className="textarea textarea-bordered w-full h-32"
+                                        value={content}
+                                        onChange={(e) => setContent(e.target.value)}
+                                    />
+                                </div>
                                 
+                                {/* Fotoğraf yükleme alanı */}
                                 <div className="form-control mb-4">
                                     <label className="label">
                                         <span className="label-text">Image (Max 5MB)</span>
@@ -104,6 +126,14 @@ const CreatePage = () => {
                                         onChange={handleImageChange}
                                     />
                                 </div>
+                                
+                                {/* Resim Önizleme Alanı */}
+                                {previewUrl && (
+                                    <div className='mb-4'>
+                                        <label className="label"><span className="label-text">Image Preview</span></label>
+                                        <img src={previewUrl} alt="Selected preview" className="w-full h-auto max-h-80 object-cover rounded-lg" />
+                                    </div>
+                                )}
 
                                 <div className="card-actions justify-end">
                                     <button type="submit" className="btn btn-primary" disabled={loading}>
