@@ -1,12 +1,11 @@
 // backend/src/controllers/notesController.js
 
 import Note from "../models/Note.js";
-import { v2 as cloudinary } from 'cloudinary'; // Cloudinary'yi import ediyoruz, fs ve path'e gerek kalmadı.
+import { v2 as cloudinary } from 'cloudinary';
 
-// Bu iki fonksiyonda bir değişiklik yok, aynı kalabilir.
 export async function getAllowNotes(_, res) {
     try {
-        const notes = await Note.find().sort({ createdAt: -1 }); // createAt -> createdAt olarak düzeltildi (genellikle böyledir)
+        const notes = await Note.find().sort({ createdAt: -1 });
         res.status(200).json(notes);
     } catch (error) {
         console.error("Error getAllowNotes controller", error);
@@ -25,18 +24,29 @@ export async function getNoteById(req, res) {
     }
 }
 
-// --- GÜNCELLENMİŞ createNote FONKSİYONU ---
+// --- GÜNCELLENMİŞ createNote FONKSİYONU (Cloudinary optimizasyon parametreleri eklendi) ---
 export async function createNote(req, res) {
     try {
         const { title, content } = req.body;
         const newNote = new Note({ title, content });
 
-        // Eğer bir dosya yüklendiyse (yani Cloudinary'ye gönderildiyse),
-        // Cloudinary'den gelen URL ve public_id bilgilerini veritabanına kaydediyoruz.
         if (req.file) {
+            // Cloudinary'ye yükleme yaparken optimizasyon parametrelerini ekliyoruz.
+            // Bu parametreler Cloudinary'nin en iyi sıkıştırma ve formatı seçmesini sağlar.
+            // quality: 'auto:good' -> iyi kaliteyi hedeflerken sıkıştırma uygula
+            // fetch_format: 'auto' -> tarayıcının desteklediği en iyi formatı kullan (WebP, AVIF vb.)
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "notes", // Cloudinary'de notlar için bir klasör oluştur
+                quality: 'auto:good', // Kaliteyi otomatik olarak optimize et
+                fetch_format: 'auto', // En iyi dosya formatını otomatik seç (WebP, AVIF vb.)
+                crop: "fill", // Gerekirse resmi kırp ve doldur
+                width: 800, // Genişliği belirle, yüksekliği oranla ayarlar
+                height: 600, // Yüksekliği belirle, genişliği oranla ayarlar
+            });
+
             newNote.image = {
-                url: req.file.path,
-                public_id: req.file.filename
+                url: result.secure_url, // Güvenli URL'yi kullan
+                public_id: result.public_id
             };
         }
 
@@ -48,7 +58,7 @@ export async function createNote(req, res) {
     }
 }
 
-// --- GÜNCELLENMİŞ updateNote FONKSİYONU ---
+// --- GÜNCELLENMİŞ updateNote FONKSİYONU (Cloudinary optimizasyon parametreleri eklendi) ---
 export async function updateNote(req, res) {
     try {
         const { title, content } = req.body;
@@ -58,21 +68,28 @@ export async function updateNote(req, res) {
             return res.status(404).json({ message: "Note not found" });
         }
 
-        // Eğer kullanıcı yeni bir fotoğraf yüklediyse...
         if (req.file) {
-            // ...ve notun eski bir fotoğrafı varsa, önce onu Cloudinary'den siliyoruz.
+            // Eski fotoğrafı sil
             if (noteToUpdate.image && noteToUpdate.image.public_id) {
                 await cloudinary.uploader.destroy(noteToUpdate.image.public_id);
             }
 
-            // Sonra notun image alanını yeni fotoğrafın bilgileriyle güncelliyoruz.
+            // Yeni fotoğrafı optimize edilmiş şekilde yükle
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "notes",
+                quality: 'auto:good',
+                fetch_format: 'auto',
+                crop: "fill",
+                width: 800,
+                height: 600,
+            });
+
             noteToUpdate.image = {
-                url: req.file.path,
-                public_id: req.file.filename
+                url: result.secure_url,
+                public_id: result.public_id
             };
         }
 
-        // Diğer alanları (title, content) güncelliyoruz.
         noteToUpdate.title = title;
         noteToUpdate.content = content;
 
@@ -84,7 +101,7 @@ export async function updateNote(req, res) {
     }
 }
 
-// --- GÜNCELLENMİŞ deleteNote FONKSİYONU ---
+// --- deleteNote FONKSİYONU aynı kalabilir ---
 export async function deleteNote(req, res) {
     try {
         const noteToDelete = await Note.findById(req.params.id);
@@ -93,13 +110,10 @@ export async function deleteNote(req, res) {
             return res.status(404).json({ message: "Note not found" });
         }
 
-        // Notu veritabanından silmeden önce, eğer bir fotoğrafı varsa,
-        // bu fotoğrafı Cloudinary'den siliyoruz.
         if (noteToDelete.image && noteToDelete.image.public_id) {
             await cloudinary.uploader.destroy(noteToDelete.image.public_id);
         }
 
-        // Fotoğraf silindikten sonra notu MongoDB'den siliyoruz.
         await Note.findByIdAndDelete(req.params.id);
 
         res.status(200).json({ message: "Note deleted successfully" });
