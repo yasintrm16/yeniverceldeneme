@@ -1,7 +1,5 @@
-// frontend/src/pages/CreatePage.jsx
-
 import { ArrowLeftIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react"; // useEffect'i import et
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/axios";
@@ -10,6 +8,7 @@ const CreatePage = () => {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [image, setImage] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null); // YENİ: Resim önizlemesi için state
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -20,24 +19,36 @@ const CreatePage = () => {
 
         if (!file) {
             setImage(null);
-            return; // Kullanıcı dosya seçmekten vazgeçerse işlemi durdur
+            setPreviewUrl(null); // GÜNCELLENDİ: Dosya seçimi iptal edilirse önizlemeyi temizle
+            return;
         }
 
         const MAX_FILE_SIZE_MB = 5;
         const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-        // Dosya boyutunu kontrol et
         if (file.size > MAX_FILE_SIZE_BYTES) {
-            // Boyut limiti aşıldıysa hata göster ve input'u temizle
             toast.error(`Dosya boyutu çok büyük! Lütfen ${MAX_FILE_SIZE_MB}MB'dan küçük bir fotoğraf seçin.`);
-            e.target.value = null; // Bu satır, kullanıcının aynı büyük dosyayı tekrar seçmesini engeller
+            e.target.value = null;
             setImage(null);
+            setPreviewUrl(null); // GÜNCELLENDİ: Hatalı dosyada önizlemeyi temizle
             return;
         }
 
-        // Boyut uygunsa, dosyayı state'e kaydet
         setImage(file);
+        setPreviewUrl(URL.createObjectURL(file)); // GÜNCELLENDİ: Geçerli dosya için önizleme URL'si oluştur
     };
+
+    // YENİ: Bellek sızıntılarını önlemek için cleanup etkisi
+    // Bir önizleme URL'si oluşturulduğunda, component'tan ayrılırken bu URL'yi bellekten temizlemek en iyi pratiktir.
+    useEffect(() => {
+        // Component unmount olduğunda (sayfadan ayrıldığında) bu fonksiyon çalışır
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]); // Bu effect, sadece previewUrl değiştiğinde çalışır
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -67,14 +78,12 @@ const CreatePage = () => {
             navigate("/");
         } catch (error) {
             console.log("Error creating note", error);
-            // Hem rate limit hem de backend'den gelebilecek dosya boyutu hatasını yakala
             if (error.response?.status === 429) {
                 toast.error("Slow down! You're creating notes too fast", {
                     duration: 4000,
                     icon: "💀",
                 });
             } else {
-                 // Backend'den gelen spesifik hata mesajını göster
                 toast.error(error.response?.data?.message || "Failed to create note");
             }
         } finally {
@@ -97,18 +106,32 @@ const CreatePage = () => {
                             <form onSubmit={handleSubmit}>
                                 {/* ...diğer form elemanları... */}
                                 
-                                {/* Fotoğraf yükleme alanı */}
                                 <div className="form-control mb-4">
                                     <label className="label">
-                                        <span className="label-text">Image (Max 5MB)</span> {/* Etiketi güncellemek kullanıcı için faydalıdır */}
+                                        <span className="label-text">Image (Max 5MB)</span>
                                     </label>
                                     <input
                                         type="file"
-                                        accept="image/*" // Sadece resim dosyalarını seçmeye izin ver
+                                        accept="image/*"
                                         className="file-input file-input-bordered w-full"
                                         onChange={handleImageChange}
                                     />
                                 </div>
+
+                                {/* YENİ: Resim Önizleme Alanı */}
+                                {previewUrl && (
+                                    <div className='mb-4'>
+                                        <label className="label">
+                                            <span className="label-text">Image Preview</span>
+                                        </label>
+                                        <img 
+                                            src={previewUrl} 
+                                            alt="Selected preview" 
+                                            className="w-full h-auto max-h-80 object-cover rounded-lg border border-base-300" 
+                                        />
+                                    </div>
+                                )}
+                                {/* Bitiş: Resim Önizleme Alanı */}
 
                                 <div className="card-actions justify-end">
                                     <button type="submit" className="btn btn-primary" disabled={loading}>
