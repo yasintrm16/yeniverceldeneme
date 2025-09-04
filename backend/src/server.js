@@ -1,41 +1,47 @@
-// backend/src/server.js
-
-import express from 'express';
-import notesRoutes from "./routes/noteRoutes.js";
-import { connectDB } from './config/db.js';
+import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
-import rateLimiter from './middleware/rateLimiter.js';
-import cors from 'cors';
+import path from "path";
+
+import notesRoutes from "./routes/noteRoutes.js";
+import { connectDB } from "./config/db.js";
+import rateLimiter from "./middleware/rateLimiter.js";
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5001;
+const __dirname = path.resolve();
 
-connectDB(); // Veritabanı bağlantısını başlat
-
-app.use(express.json());
-
-// DEĞİŞTİRİLDİ: CORS Ayarı
-// Vercel'de frontend'in adresi localhost olmayacağı için,
-// backend'in her yerden gelen isteklere cevap vermesine izin veriyoruz.
-app.use(cors());
-
+// middleware
+if (process.env.NODE_ENV !== "production") {
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+    })
+  );
+}
+app.use(express.json()); // this middleware will parse JSON bodies: req.body
 app.use(rateLimiter);
 
-// KALDIRILDI: Bu satıra artık gerek yok çünkü fotoğraflar Cloudinary'de
-// app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// our simple custom middleware
+// app.use((req, res, next) => {
+//   console.log(`Req method is ${req.method} & Req URL is ${req.url}`);
+//   next();
+// });
 
 app.use("/api/notes", notesRoutes);
 
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-// KALDIRILDI: Vercel sunucuyu kendisi dinleyeceği için bu bloğu tamamen siliyoruz.
-/*
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+  });
+}
+
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log('Server started on PORT :', PORT);
+    console.log("Server started on PORT:", PORT);
   });
 });
-*/
-
-// EKLENDİ: Vercel'in uygulamayı çalıştırabilmesi için app nesnesini dışa aktarıyoruz.
-export default app;
