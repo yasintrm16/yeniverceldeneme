@@ -3,6 +3,8 @@
 import Note from "../models/Note.js";
 import { v2 as cloudinary } from 'cloudinary';
 
+// getAllowNotes ve getNoteById fonksiyonları aynı kalabilir...
+
 export async function getAllowNotes(_, res) {
     try {
         const notes = await Note.find().sort({ createdAt: -1 });
@@ -24,28 +26,24 @@ export async function getNoteById(req, res) {
     }
 }
 
-// --- GÜNCELLENMİŞ createNote FONKSİYONU (Cloudinary optimizasyon parametreleri eklendi) ---
+// --- GÜNCELLENMİŞ ve OPTİMİZE EDİLMİŞ createNote FONKSİYONU ---
 export async function createNote(req, res) {
     try {
         const { title, content } = req.body;
         const newNote = new Note({ title, content });
 
         if (req.file) {
-            // Cloudinary'ye yükleme yaparken optimizasyon parametrelerini ekliyoruz.
-            // Bu parametreler Cloudinary'nin en iyi sıkıştırma ve formatı seçmesini sağlar.
-            // quality: 'auto:good' -> iyi kaliteyi hedeflerken sıkıştırma uygula
-            // fetch_format: 'auto' -> tarayıcının desteklediği en iyi formatı kullan (WebP, AVIF vb.)
             const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: "notes", // Cloudinary'de notlar için bir klasör oluştur
-                quality: 'auto:good', // Kaliteyi otomatik olarak optimize et
-                fetch_format: 'auto', // En iyi dosya formatını otomatik seç (WebP, AVIF vb.)
-                crop: "fill", // Gerekirse resmi kırp ve doldur
-                width: 800, // Genişliği belirle, yüksekliği oranla ayarlar
-                height: 600, // Yüksekliği belirle, genişliği oranla ayarlar
+                folder: "notes",
+                // Yeniden boyutlandırma ve optimizasyon parametreleri bir arada
+                transformation: [
+                    { width: 1200, height: 1200, crop: "limit" }, // En-boy oranını koruyarak resmi 1200x1200 alanına sığdırır
+                    { quality: "auto:good", fetch_format: "auto" }
+                ]
             });
 
             newNote.image = {
-                url: result.secure_url, // Güvenli URL'yi kullan
+                url: result.secure_url,
                 public_id: result.public_id
             };
         }
@@ -58,7 +56,7 @@ export async function createNote(req, res) {
     }
 }
 
-// --- GÜNCELLENMİŞ updateNote FONKSİYONU (Cloudinary optimizasyon parametreleri eklendi) ---
+// --- GÜNCELLENMİŞ ve OPTİMİZE EDİLMİŞ updateNote FONKSİYONU ---
 export async function updateNote(req, res) {
     try {
         const { title, content } = req.body;
@@ -69,19 +67,17 @@ export async function updateNote(req, res) {
         }
 
         if (req.file) {
-            // Eski fotoğrafı sil
             if (noteToUpdate.image && noteToUpdate.image.public_id) {
                 await cloudinary.uploader.destroy(noteToUpdate.image.public_id);
             }
 
-            // Yeni fotoğrafı optimize edilmiş şekilde yükle
             const result = await cloudinary.uploader.upload(req.file.path, {
                 folder: "notes",
-                quality: 'auto:good',
-                fetch_format: 'auto',
-                crop: "fill",
-                width: 800,
-                height: 600,
+                 // Yeniden boyutlandırma ve optimizasyon parametreleri bir arada
+                 transformation: [
+                    { width: 1200, height: 1200, crop: "limit" }, // En-boy oranını koruyarak resmi 1200x1200 alanına sığdırır
+                    { quality: "auto:good", fetch_format: "auto" }
+                ]
             });
 
             noteToUpdate.image = {
@@ -101,6 +97,7 @@ export async function updateNote(req, res) {
     }
 }
 
+
 // --- deleteNote FONKSİYONU aynı kalabilir ---
 export async function deleteNote(req, res) {
     try {
@@ -110,8 +107,8 @@ export async function deleteNote(req, res) {
             return res.status(404).json({ message: "Note not found" });
         }
 
-        if (noteToDelete.image && noteToDelete.image.public_id) {
-            await cloudinary.uploader.destroy(noteToDelete.image.public_id);
+        if (noteToDelete.image && noteToUpdate.image.public_id) {
+            await cloudinary.uploader.destroy(noteToUpdate.image.public_id);
         }
 
         await Note.findByIdAndDelete(req.params.id);
