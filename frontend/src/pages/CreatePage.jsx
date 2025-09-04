@@ -1,5 +1,7 @@
+// frontend/src/pages/CreatePage.jsx
+
 import { ArrowLeftIcon } from "lucide-react";
-import { useEffect, useState } from "react"; // useEffect'i import et
+import { useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/axios";
@@ -8,47 +10,32 @@ const CreatePage = () => {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [image, setImage] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState(null); // YENİ: Resim önizlemesi için state
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
-    // --- GÜNCELLENMİŞ FONKSİYON ---
     const handleImageChange = (e) => {
         const file = e.target.files[0];
 
         if (!file) {
             setImage(null);
-            setPreviewUrl(null); // GÜNCELLENDİ: Dosya seçimi iptal edilirse önizlemeyi temizle
             return;
         }
 
-        const MAX_FILE_SIZE_MB = 5;
-        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+        const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
+        // Dosya boyutunu anında kontrol et
         if (file.size > MAX_FILE_SIZE_BYTES) {
-            toast.error(`Dosya boyutu çok büyük! Lütfen ${MAX_FILE_SIZE_MB}MB'dan küçük bir fotoğraf seçin.`);
-            e.target.value = null;
+            // DEĞİŞİKLİK BURADA: Hata mesajını güncelledik.
+            toast.error("fotoğraf çok buyuk"); 
+            
+            e.target.value = null; 
             setImage(null);
-            setPreviewUrl(null); // GÜNCELLENDİ: Hatalı dosyada önizlemeyi temizle
-            return;
+            return; // İşlemi burada durdurarak "Kaydet" tuşuna basılmasını bekleme
         }
 
         setImage(file);
-        setPreviewUrl(URL.createObjectURL(file)); // GÜNCELLENDİ: Geçerli dosya için önizleme URL'si oluştur
     };
-
-    // YENİ: Bellek sızıntılarını önlemek için cleanup etkisi
-    // Bir önizleme URL'si oluşturulduğunda, component'tan ayrılırken bu URL'yi bellekten temizlemek en iyi pratiktir.
-    useEffect(() => {
-        // Component unmount olduğunda (sayfadan ayrıldığında) bu fonksiyon çalışır
-        return () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]); // Bu effect, sadece previewUrl değiştiğinde çalışır
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -117,21 +104,6 @@ const CreatePage = () => {
                                         onChange={handleImageChange}
                                     />
                                 </div>
-
-                                {/* YENİ: Resim Önizleme Alanı */}
-                                {previewUrl && (
-                                    <div className='mb-4'>
-                                        <label className="label">
-                                            <span className="label-text">Image Preview</span>
-                                        </label>
-                                        <img 
-                                            src={previewUrl} 
-                                            alt="Selected preview" 
-                                            className="w-full h-auto max-h-80 object-cover rounded-lg border border-base-300" 
-                                        />
-                                    </div>
-                                )}
-                                {/* Bitiş: Resim Önizleme Alanı */}
 
                                 <div className="card-actions justify-end">
                                     <button type="submit" className="btn btn-primary" disabled={loading}>

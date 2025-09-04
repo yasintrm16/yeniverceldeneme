@@ -46,13 +46,12 @@ if (process.env.NODE_ENV === "production") {
 app.use((error, req, res, next) => {
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
-            // Büyük dosya hatasını yakalayıp anlaşılır bir JSON mesajı döner.
+            // DEĞİŞİKLİK BURADA: Backend hata mesajını da güncelledik.
             return res.status(400).json({
-                message: 'Dosya boyutu çok büyük. Lütfen 5MB\'dan daha küçük bir fotoğraf yükleyin.',
+                message: 'fotoğraf çok buyuk',
             });
         }
     }
-    // Diğer sunucu hatalarını da yakalamak için
     res.status(500).json({ message: error.message || 'Bir sunucu hatası oluştu.' });
 });
 // ----------------------------------------------------
