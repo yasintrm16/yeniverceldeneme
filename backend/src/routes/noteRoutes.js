@@ -10,25 +10,31 @@ import dotenv from 'dotenv';
 dotenv.config();
 const router = express.Router();
 
-// Cloudinary'yi .env dosyasındaki bilgilerle yapılandır
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Multer'a dosyaları yerel disk yerine Cloudinary'ye kaydetmesini söyleyen yapılandırma
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'notes_app_images', // Dosyaların Cloudinary hesabında hangi klasöre kaydedileceği
-        allowed_formats: ['jpeg', 'png', 'jpg'], // İzin verilen dosya formatları
+        folder: 'notes_app_images',
+        allowed_formats: ['jpeg', 'png', 'jpg', 'webp'], // webp gibi modern formatları da ekleyebilirsiniz
     },
 });
 
-const upload = multer({ storage: storage });
+// --- DEĞİŞİKLİK BURADA ---
+// 'upload' middleware'ini yapılandırırken 'limits' özelliğini ekleyin
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        // 5 MB = 5 * 1024 * 1024 bayt
+        fileSize: 5 * 1024 * 1024 
+    }
+});
+// -------------------------
 
-// Rotalar - Artık 'upload' middleware'i dosyaları doğrudan Cloudinary'ye gönderiyor
 router.get('/', getAllowNotes);
 router.get('/:id', getNoteById);
 router.post('/', upload.single('image'), createNote);

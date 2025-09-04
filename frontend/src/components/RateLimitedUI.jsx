@@ -1,23 +1,23 @@
-import { ZapIcon } from "lucide-react";
+// frontend/src/components/RateLimitedUI.jsx
+
+import React from 'react';
+
+// İsteğe bağlı olarak bir ikon kütüphanesi kullanabilirsiniz, örneğin react-icons
+// npm install react-icons
+import { ClockLoader } from 'react-spinners'; // Veya başka bir görsel element
 
 const RateLimitedUI = () => {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="bg-primary/10 border border-primary/30 rounded-lg shadow-md">
-        <div className="flex flex-col md:flex-row items-center p-6">
-          <div className="flex-shrink-0 bg-primary/20 p-4 rounded-full mb-4 md:mb-0 md:mr-6">
-            <ZapIcon className="size-10 text-primary" />
-          </div>
-          <div className="flex-1 text-center md:text-left">
-            <h3 className="text-xl font-bold mb-2">Rate Limit Reached</h3>
-            <p className="text-base-content mb-1">
-              You've made too many requests in a short period. Please wait a moment.
-            </p>
-            <p className="text-sm text-base-content/70">
-              Try again in a few seconds for the best experience.
-            </p>
-          </div>
-        </div>
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 text-gray-800 p-4">
+      <div className="text-center bg-white p-10 rounded-lg shadow-xl">
+        <ClockLoader color={"#F59E0B"} size={60} className="mx-auto mb-6" />
+        <h1 className="text-4xl font-bold text-amber-500 mb-2">İstek Limiti Aşıldı</h1>
+        <p className="text-lg mb-1">
+          Sunucuya çok fazla istek gönderdiniz.
+        </p>
+        <p className="text-lg">
+          Lütfen bir dakika sonra tekrar deneyin.
+        </p>
       </div>
     </div>
   );

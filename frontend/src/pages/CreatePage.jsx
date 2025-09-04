@@ -3,19 +3,40 @@
 import { ArrowLeftIcon } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Link, useNavigate } from "react-router-dom"; // Link ve useNavigate'i react-router-dom'dan import et
+import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/axios";
 
 const CreatePage = () => {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
-    const [image, setImage] = useState(null); // YENİ: Fotoğraf state'i
+    const [image, setImage] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
-    const handleImageChange = (e) => { // YENİ: Fotoğraf seçildiğinde state'i güncelleyen fonksiyon
-        setImage(e.target.files[0]);
+    // --- GÜNCELLENMİŞ FONKSİYON ---
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+
+        if (!file) {
+            setImage(null);
+            return; // Kullanıcı dosya seçmekten vazgeçerse işlemi durdur
+        }
+
+        const MAX_FILE_SIZE_MB = 5;
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+        // Dosya boyutunu kontrol et
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            // Boyut limiti aşıldıysa hata göster ve input'u temizle
+            toast.error(`Dosya boyutu çok büyük! Lütfen ${MAX_FILE_SIZE_MB}MB'dan küçük bir fotoğraf seçin.`);
+            e.target.value = null; // Bu satır, kullanıcının aynı büyük dosyayı tekrar seçmesini engeller
+            setImage(null);
+            return;
+        }
+
+        // Boyut uygunsa, dosyayı state'e kaydet
+        setImage(file);
     };
 
     const handleSubmit = async (e) => {
@@ -28,7 +49,6 @@ const CreatePage = () => {
 
         setLoading(true);
 
-        // YENİ: FormData oluştur
         const formData = new FormData();
         formData.append("title", title);
         formData.append("content", content);
@@ -37,7 +57,6 @@ const CreatePage = () => {
         }
 
         try {
-            // YENİ: API isteğini FormData ile gönder ve header'ı ayarla
             await api.post("/notes", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
@@ -48,13 +67,15 @@ const CreatePage = () => {
             navigate("/");
         } catch (error) {
             console.log("Error creating note", error);
-            if (error.response && error.response.status === 429) {
+            // Hem rate limit hem de backend'den gelebilecek dosya boyutu hatasını yakala
+            if (error.response?.status === 429) {
                 toast.error("Slow down! You're creating notes too fast", {
                     duration: 4000,
                     icon: "💀",
                 });
             } else {
-                toast.error("Failed to create note");
+                 // Backend'den gelen spesifik hata mesajını göster
+                toast.error(error.response?.data?.message || "Failed to create note");
             }
         } finally {
             setLoading(false);
@@ -74,38 +95,16 @@ const CreatePage = () => {
                         <div className="card-body">
                             <h2 className="card-title text-2xl mb-4">Create New Note</h2>
                             <form onSubmit={handleSubmit}>
-                                <div className="form-control mb-4">
-                                    <label className="label">
-                                        <span className="label-text">Title</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Note Title"
-                                        className="input input-bordered"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="form-control mb-4">
-                                    <label className="label">
-                                        <span className="label-text">Content</span>
-                                    </label>
-                                    <textarea
-                                        placeholder="Write your note here..."
-                                        className="textarea textarea-bordered h-32"
-                                        value={content}
-                                        onChange={(e) => setContent(e.target.value)}
-                                    />
-                                </div>
+                                {/* ...diğer form elemanları... */}
                                 
-                                {/* YENİ: Fotoğraf yükleme alanı */}
+                                {/* Fotoğraf yükleme alanı */}
                                 <div className="form-control mb-4">
                                     <label className="label">
-                                        <span className="label-text">Image (Optional)</span>
+                                        <span className="label-text">Image (Max 5MB)</span> {/* Etiketi güncellemek kullanıcı için faydalıdır */}
                                     </label>
                                     <input
                                         type="file"
+                                        accept="image/*" // Sadece resim dosyalarını seçmeye izin ver
                                         className="file-input file-input-bordered w-full"
                                         onChange={handleImageChange}
                                     />
