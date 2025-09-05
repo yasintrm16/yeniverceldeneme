@@ -29,8 +29,8 @@ export async function getNoteById(req, res) {
 // --- GÜNCELLENMİŞ ve OPTİMİZE EDİLMİŞ createNote FONKSİYONU ---
 export async function createNote(req, res) {
     try {
-        const { title, content } = req.body;
-        const newNote = new Note({ title, content });
+        const { title, content,subtitle } = req.body;
+        const newNote = new Note({ title, content,subtitle });
 
         if (req.file) {
             const result = await cloudinary.uploader.upload(req.file.path, {
@@ -59,7 +59,7 @@ export async function createNote(req, res) {
 // --- GÜNCELLENMİŞ ve OPTİMİZE EDİLMİŞ updateNote FONKSİYONU ---
 export async function updateNote(req, res) {
     try {
-        const { title, content } = req.body;
+        const { title, content,subtitle } = req.body;
         const noteToUpdate = await Note.findById(req.params.id);
 
         if (!noteToUpdate) {
@@ -88,6 +88,7 @@ export async function updateNote(req, res) {
 
         noteToUpdate.title = title;
         noteToUpdate.content = content;
+        noteToUpdate.subtitle = subtitle;
 
         const updatedNote = await noteToUpdate.save();
         res.status(200).json(updatedNote);

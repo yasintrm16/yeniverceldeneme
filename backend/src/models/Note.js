@@ -12,12 +12,15 @@ const noteSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        // --- BU BÖLÜMÜ DEĞİŞTİR ---
+        // subtitle alanı required: false olarak ayarlandığı için zorunlu değildir.
+        subtitle: {
+            type: String,
+            required: false 
+        },
         image: {
             url: String, // Fotoğrafın Cloudinary'deki tam adresi
             public_id: String // Fotoğrafı silmek için gereken benzersiz kimlik
         },
-        // --- DEĞİŞİKLİK SONU ---
     },
     { timestamps: true }
 );

@@ -89,6 +89,7 @@ const NoteDetailPage = () => {
         const formData = new FormData();
         formData.append("title", note.title);
         formData.append("content", note.content);
+        formData.append("subtitle", note.subtitle);
         if (newImage) {
             formData.append("image", newImage);
         }
@@ -149,6 +150,10 @@ const NoteDetailPage = () => {
                             <div className="form-control mb-4">
                                 <label className="label"><span className="label-text">Content</span></label>
                                 <textarea placeholder="Write your note here..." className="textarea textarea-bordered h-32" value={note.content} onChange={(e) => setNote({ ...note, content: e.target.value })} />
+                            </div>
+                            <div className="form-control mb-4">
+                                <label className="label"><span className="label-text">subtitle</span></label>
+                                <textarea placeholder="Write your note here..." className="textarea textarea-bordered h-32" value={note.subtitle} onChange={(e) => setNote({ ...note, subtitle: e.target.value })} />
                             </div>
 
                             {/* GÜNCELLENDİ: Dosya input'u yeni fonksiyonu kullanıyor */}

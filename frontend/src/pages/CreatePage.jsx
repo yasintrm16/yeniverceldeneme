@@ -7,6 +7,7 @@ import api from "../lib/axios";
 const CreatePage = () => {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
+    const [subtitle, setsubtitle] = useState("");
     const [image, setImage] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -56,6 +57,7 @@ const CreatePage = () => {
         const formData = new FormData();
         formData.append("title", title);
         formData.append("content", content);
+        formData.append("subtitle", subtitle);
         if (image) {
             formData.append("image", image);
         }
@@ -111,6 +113,17 @@ const CreatePage = () => {
                                         className="textarea textarea-bordered w-full h-32"
                                         value={content}
                                         onChange={(e) => setContent(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-control mb-4">
+                                    <label className="label">
+                                        <span className="label-text">subtitle</span>
+                                    </label>
+                                    <textarea
+                                        placeholder="Write your note here..."
+                                        className="textarea textarea-bordered w-full h-32"
+                                        value={subtitle}
+                                        onChange={(e) => setsubtitle(e.target.value)}
                                     />
                                 </div>
                                 
