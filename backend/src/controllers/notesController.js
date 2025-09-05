@@ -108,10 +108,14 @@ export async function deleteNote(req, res) {
             return res.status(404).json({ message: "Note not found" });
         }
 
-        if (noteToDelete.image && noteToUpdate.image.public_id) {
-            await cloudinary.uploader.destroy(noteToUpdate.image.public_id);
+        // Eğer notun bir resmi ve public_id'si varsa, Cloudinary'den sil
+        // --- DÜZELTME BURADA ---
+        if (noteToDelete.image && noteToDelete.image.public_id) {
+            await cloudinary.uploader.destroy(noteToDelete.image.public_id);
         }
+        // -------------------------
 
+        // Notu veritabanından sil
         await Note.findByIdAndDelete(req.params.id);
 
         res.status(200).json({ message: "Note deleted successfully" });
