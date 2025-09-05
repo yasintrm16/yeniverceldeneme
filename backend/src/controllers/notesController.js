@@ -2,6 +2,10 @@
 
 import Note from "../models/Note.js";
 import { v2 as cloudinary } from 'cloudinary';
+// --- FIX: IMPORT CloudinaryStorage and multer ---
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
+// -----------------------------------------
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
@@ -22,6 +26,7 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }
 });
+
 export async function getAllowNotes(_, res) {
     try {
         const notes = await Note.find().sort({ createdAt: -1 });
